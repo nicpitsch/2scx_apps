@@ -1,0 +1,46 @@
+/* 2sxc News-App by 2sxc */
+.app-news { margin-bottom:25px;}
+.app-news-image { max-width:100%; max-height:400px;}
+.app-news-item { position:relative; margin-bottom:25px;}
+
+.app-news-date { color:#888; display:block; margin-bottom:10px;}
+
+/* Detail Styles */
+.app-news-detail { margin-bottom:25px;}
+.app-news-detail .app-news-image { margin-bottom:20px; border-radius:4px;  }
+
+/* List Styles */
+.app-news-item .app-news-image { float:left; width:38.19% /* Golden Ratio */; padding:0 10px 10px 0;}
+.app-news-item .app-news-text { padding-bottom:10px;}
+a.app-news-link { display:block; text-decoration:none; color:#666; background-color:#fcfcfc; padding:10px 10px 0 10px; overflow:hidden; border-radius:4px; 
+	-webkit-box-shadow: 0px 0px 10px 0px rgba(204,204,204,1);
+	-moz-box-shadow: 0px 0px 10px 0px rgba(204,204,204,1);
+	box-shadow: 0px 0px 10px 0px rgba(204,204,204,1);
+	-webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    -o-transition: all 1s ease;
+    transition: all 1s ease;
+}
+a.app-news-link:hover, a.app-news-link:focus { border-radius:6px; background-color:#eee;
+    -webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    -o-transition: all 1s ease;
+    transition: all 1s ease;
+}
+a.app-news-link:hover h3, a.app-news-link:focus h3, a.app-news-link:hover h2, a.app-news-link:focus h2 { color:#000; 
+    -webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    -o-transition: all 1s ease;
+    transition: all 1s ease;
+}
+
+/* Buttons */
+a.app-news-button, .app-news-button { padding:10px; background:#666; color:white; display:inline-block; border-radius:2px;}
+a.app-news-link:hover .app-news-button, a.app-news-link:focus .app-news-button, a.app-news-button:hover, a.app-news-button:focus { background:#000;
+    -webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    -o-transition: all 1s ease;
+    transition: all 1s ease;
+}
+.app-news-more:before { content:"\00BB"; margin-right:5px;}
+.app-news-backlinks a:before { content:"\00AB"; margin-right:5px;}

@@ -1,0 +1,125 @@
+﻿@using DotNetNuke.Services.FileSystem
+@using System.Dynamic
+@using Microsoft.Practices.ObjectBuilder2
+
+@functions {
+    
+
+    private IFolderInfo _folder;
+    /// <summary>
+    /// Get the folder specified in App.Settings (BasePath) combined with the module's ID
+    /// Will create the folder if it does not exist
+    /// </summary>
+    public IFolderInfo Folder
+    {
+        get
+        {
+            if (_folder == null)
+            {
+                var folderManager = FolderManager.Instance;
+                
+                var basePath = (string)App.Settings.BasePath;
+                var path = basePath + "/" + Dnn.Module.ModuleID.ToString();
+
+                // Create base folder if not exists
+                if (!folderManager.FolderExists(Dnn.Portal.PortalId, basePath))
+                {
+                    folderManager.AddFolder(Dnn.Portal.PortalId, basePath);
+                }
+
+                // Create images folder for this module if not exists
+                if (!folderManager.FolderExists(Dnn.Portal.PortalId, path))
+                {
+                    folderManager.AddFolder(Dnn.Portal.PortalId, path);
+                }
+
+                _folder = folderManager.GetFolder(Dnn.Portal.PortalId, path);
+            }
+
+            return _folder;
+        }
+    }
+
+    /// <summary>
+    /// Combines the list of images (from the file system) with the metadata in 2sxc
+    /// </summary>
+    /// <param name="sortMode"></param>
+    /// <returns></returns>
+    public IEnumerable<dynamic> GetImages(string sortMode)
+    {
+        // Find all files as currently managed by DNN
+        var images = FolderManager.Instance.GetFiles(Folder);
+
+        // Retrieve all image description entities in 2sxc
+        var imgDescriptions = AsDynamic(App.Data["Gallery Image"]);
+
+        // Combine these into a GalleryImage-object
+        var combined = images.Select(i =>
+        {
+            // Special trick: we want to compare the ID as stored in the DB, not the filename as usually available in the 2sxc object. Because of this, we use "AsEntity()"
+            var metaData = imgDescriptions.FirstOrDefault(d => AsEntity(d)["File"][0].ToString() == "File:" + i.FileId);
+            return new GalleryImage() { Image = i, MetaData = metaData };
+        });
+        
+        // Special event: here we go and delete images, which the editor had marked as "Please Delete"
+        combined.ToList().Where(c => c.MetaData != null && c.MetaData.Deleted).ForEach(c => DeleteImage(c.Image.FileId));   // call delete for each
+        combined = combined.Where(c => c.MetaData == null || !c.MetaData.Deleted);                                          // remove deleted items from the list
+        
+        // Handle sorting
+        switch(sortMode)
+        {
+            case "File asc":
+                combined = combined.OrderBy(c => c.Image.FileName);
+                break;
+            case "File desc":
+                combined = combined.OrderByDescending(c => c.Image.FileName);
+                break;
+            case "Title asc":
+                combined = combined.OrderBy(c => c.MetaData == null).ThenBy(c => c.MetaData == null ? "" : c.MetaData.Title);
+                break;
+            case "Title desc":
+                combined = combined.OrderBy(c => c.MetaData == null).ThenByDescending(c => c.MetaData == null ? "" : c.MetaData.Title);
+                break;
+            case "Upload asc":
+                combined = combined.OrderBy(c => c.Image.CreatedOnDate);
+                break;
+            case "Upload desc":
+                combined = combined.OrderByDescending(c => c.Image.CreatedOnDate);
+                break;
+            case "Manual asc":
+                combined = combined.OrderBy(c => c.MetaData == null || c.MetaData.Priority == "").ThenBy(c => c.MetaData == null ? "" : c.MetaData.Priority);
+                break;
+            case "Manual desc":
+                combined = combined.OrderBy(c => c.MetaData == null || c.MetaData.Priority == "").ThenByDescending(c => c.MetaData == null ? "" : c.MetaData.Priority);
+                break;
+        }
+        
+        return combined; 
+    }
+
+    /// <summary>
+    /// Special trick: we don't have a delete button in the UI yet, so we're just looking if the metadata says delete
+    /// ...then this method will remove the file
+    /// </summary>
+    /// <param name="fileId"></param>
+    public void DeleteImage(int fileId) {
+        if (!DotNetNuke.Security.Permissions.ModulePermissionController.CanEditModuleContent(Dnn.Module))
+            return;
+        
+        var fileManager = FileManager.Instance;
+        var fileInfo = fileManager.GetFile(fileId);
+        if(fileInfo.FolderId == _folder.FolderID)
+            fileManager.DeleteFile(fileInfo);
+    }
+
+    /// <summary>
+    /// Small helper class to group the image-file from the folder together with the metadata in 2sxc
+    /// </summary>
+    public class GalleryImage
+    {
+        public IFileInfo Image { get; set; }
+        public dynamic MetaData { get; set; }
+    }
+    
+
+}

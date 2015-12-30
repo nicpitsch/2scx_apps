@@ -1,0 +1,23 @@
+<link rel="stylesheet" data-enableoptimizations="true" href="[App:Path]/assets/style.css" />
+
+<div class="app-news">
+	<h2>News List with </h2>
+	<div class="app-news-list">
+		<repeat repeat="News in Data:Default">
+		[News:Repeater:Index]
+		<div class="app-news-item sc-element">[News:Toolbar]
+			<a class="app-news-link" href="[Tab:FullUrl]/2sxc/News/Details/[News:EntityId]" title="Demo News 1">
+				<img class="app-news-image" src="[News:Image]?w=533&amp;h=400&amp;mode=crop" alt="" />
+				<div class="app-news-text">
+					<h3>[News:Title]</h3>
+					<span class="app-news-date">[News:Date|d]</span>
+					<p>[News:Intro]</p>
+					<span class="app-news-more app-news-button">more</span>
+				</div>
+			</a>
+		</div>
+		
+		</repeat>
+		
+	</div>
+</div>

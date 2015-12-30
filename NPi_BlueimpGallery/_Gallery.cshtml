@@ -1,0 +1,66 @@
+<link rel="stylesheet" href="@Dnn.Portal.HomeDirectory/blueimp-gallery/css/blueimp-gallery.min.css" data-enableoptimizations="true" />
+<link rel="stylesheet" href="@App.Path/css/view.css" data-enableoptimizations="true" />
+<script type="text/javascript" src="@Dnn.Portal.HomeDirectory/blueimp-gallery/js/jquery.blueimp-gallery.min.js" data-enableoptimizations="true"></script>
+
+@* header with optional heading using an h1,h2 or whatever is configured *@
+<div class="sc-element">
+    @Content.Toolbar
+    @if(Content.HeadingType != "hidden")
+    {
+        <@Content.HeadingType>
+            @Content.Title
+        </@Content.HeadingType>
+    }
+</div>
+
+@{
+    var Helpers = CreateInstance("_GalleryHelpers.cshtml");
+}
+
+@* only show uploader if edit-mode *@
+@if(DotNetNuke.Common.Globals.IsEditMode() || Dnn.User.IsInRole("Site_Editors")) {
+    @RenderPage("_UploadHelper.cshtml", Helpers.Folder, App.Settings.AllowedExtensions.Split(','), int.Parse(App.Settings.MaxFileSizeMB))
+}
+
+@* The gallery html *@
+<div class="ap-blueimp-gallery-wrapper">
+    <div class="ap-blueimp-gallery">
+        @foreach (dynamic c in Helpers.GetImages(Content.SortMode))
+        {
+            var title = c.MetaData != null ? c.MetaData.Title : "";
+            <div class="sc-element">
+                @* The following block will either offer to edit existing metadata, or create an "add-metadata" toolbar prefilled with this files ID *@
+                @if (c.MetaData != null) {
+                    <ul class="sc-menu" data-toolbar='{ "entityId": @c.MetaData.EntityId, "action": "edit" }'></ul>
+                }
+                else
+                {
+                    <ul class="sc-menu" data-toolbar='{ "action": "new", "attributeSetName": "Gallery Image", "prefill": { "File": "File:@c.Image.FileId" } }'></ul>
+                }
+                <a href="@Path.Combine(Dnn.Portal.HomeDirectory, c.Image.RelativePath)?w=@App.Settings.LightboxImageWidth&h=@App.Settings.LightboxImageHeight&mode=@App.Settings.LightboxResizeMode" title="@title" data-gallery="#blueimp-gallery-@Dnn.Module.ModuleID">
+                    <img src="@Path.Combine(Dnn.Portal.HomeDirectory, c.Image.RelativePath)?w=@App.Settings.ThumbnailImageWidth&h=@App.Settings.ThumbnailImageHeight&mode=@App.Settings.ThumbnailResizeMode" alt="@title" />
+                    @if (Content.ShowImageTitle && c.MetaData != null && !String.IsNullOrEmpty(c.MetaData.Title))
+                    {
+                        <span>@c.MetaData.Title</span>
+                    }
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        // Because we can't add the HTML for blueimp gallery directly to the body element, we add it with JS
+        $("body").append("<!-- The Gallery as lightbox dialog, should be a child element of the document body -->" +
+            "<div id='blueimp-gallery-@Dnn.Module.ModuleID' class='blueimp-gallery blueimp-gallery-controls ap-blueimp-gallery-lightbox' data-continuous='false'>" +
+            "<div class='slides'></div>" +
+            "<h3 class='title'></h3>" +
+            "<a class='prev'>‹</a>" +
+            "<a class='next'>›</a>" +
+            "<a class='close'>×</a>" +
+            "<a class='play-pause'></a>" +
+            "<ol class='indicator'></ol>" +
+            "</div>");
+    });
+</script>

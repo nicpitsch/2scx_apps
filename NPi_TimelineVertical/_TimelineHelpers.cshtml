@@ -1,0 +1,154 @@
+@using DotNetNuke.Services.FileSystem
+@using System.Dynamic
+@using Microsoft.Practices.ObjectBuilder2
+@using ToSic.SexyContent.DataSources
+
+@functions {
+        
+    /// <summary>
+    /// Get the folder specified in App.Settings (BasePath) combined with the module's ID
+    /// Will create the folder if it does not exist
+    /// </summary>
+    public IFolderInfo Folder(string folder)
+    {
+            IFolderInfo dnnFolder;
+            var folderManager = FolderManager.Instance;                						
+						// just in case it was a file (so the folder has like image.jpg or something), truncate that
+						// this would happen if the user didn't type in a folder, but actually picked a file
+						folder = folder.Replace('\\', '/');
+						if (folder.LastIndexOf('.') > folder.LastIndexOf('/'))
+						{
+							folder = folder.Substring(0, folder.LastIndexOf('/'));
+						}
+						if (folder[folder.Length - 1] != '/')
+						{
+							folder = folder + '/';
+						}
+						// Strip Portal Homedirectory if there
+						if (folder.Contains(@Dnn.Portal.HomeDirectory)) {
+							folder = folder.Replace(@Dnn.Portal.HomeDirectory,"");
+						}	
+            // Create base folder if not exists into DNN file system
+            if (!folderManager.FolderExists(Dnn.Portal.PortalId, folder))
+            {
+                folderManager.AddFolder(Dnn.Portal.PortalId, folder);
+            }								
+            dnnFolder = folderManager.GetFolder(Dnn.Portal.PortalId, folder);
+            return dnnFolder;  
+    }
+    
+    /// <summary>
+    /// Combines the list of images (from the file system) with the metadata in 2sxc
+    /// </summary>
+    /// <param name="sortMode"></param>
+    /// <returns></returns>
+    public IEnumerable<dynamic> GetImages(int appId, string albumContentType, int zoneId, string folder, string sortMode)
+    {
+        // Find all files as currently managed by DNN
+        var images = FolderManager.Instance.GetFiles(Folder(folder));
+
+        // Retrieve all image description entities in blueimp Gallery app
+				var s = CreateSource<ToSic.Eav.DataSources.App>();
+				s.ZoneSwitch = zoneId;
+				s.AppSwitch = appId;
+				var gal = s[albumContentType];
+				var imgDescriptions = AsDynamic(gal.List);       
+        //var imgDescriptions = AsDynamic(App.Data["Gallery Image"]);
+
+        // Combine these into a GalleryImage-object
+        var combined = images.Select(i =>
+        {
+            // Special trick: we want to compare the ID as stored in the DB, not the filename as usually available in the 2sxc object. Because of this, we use "AsEntity()"
+            var metaData = imgDescriptions.FirstOrDefault(d => AsEntity(d)["File"][0].ToString() == "File:" + i.FileId);
+            return new GalleryImage() { Image = i, MetaData = metaData, Count = images.Count() };
+        });
+               
+        // Handle sorting
+        switch(sortMode)
+        {
+            case "File asc":
+                combined = combined.OrderBy(c => c.Image.FileName);
+                break;
+            case "File desc":
+                combined = combined.OrderByDescending(c => c.Image.FileName);
+                break;
+            case "Title asc":
+                combined = combined.OrderBy(c => c.MetaData == null).ThenBy(c => c.MetaData == null ? "" : c.MetaData.Title);
+                break;
+            case "Title desc":
+                combined = combined.OrderBy(c => c.MetaData == null).ThenByDescending(c => c.MetaData == null ? "" : c.MetaData.Title);
+                break;
+            case "Upload asc":
+                combined = combined.OrderBy(c => c.Image.CreatedOnDate);
+                break;
+            case "Upload desc":
+                combined = combined.OrderByDescending(c => c.Image.CreatedOnDate);
+                break;
+            case "Manual asc":
+                combined = combined.OrderBy(c => c.MetaData == null || c.MetaData.Priority == "").ThenBy(c => c.MetaData == null ? "" : c.MetaData.Priority);
+                break;
+            case "Manual desc":
+                combined = combined.OrderBy(c => c.MetaData == null || c.MetaData.Priority == "").ThenByDescending(c => c.MetaData == null ? "" : c.MetaData.Priority);
+                break;
+        }
+        
+        return combined; 
+    }
+
+    /// <summary>
+    /// Small helper class to group the image-file from the folder together with the metadata in 2sxc
+    /// </summary>
+    public class GalleryImage
+    {
+        public IFileInfo Image { get; set; }
+        public dynamic MetaData { get; set; }
+        public int Count { get; set; }
+    }      
+
+    /// <summary>
+    /// Testing ToSic data handling
+    /// </summary>		
+		public string TestGetToSicData(string folder, string sortMode) 
+		{
+			var images = FolderManager.Instance.GetFiles(Folder(folder));		
+			return folder;
+			return images.Skip(1).Any().ToString();
+			
+			IFileInfo file = images.First();
+			//return file.FileId.ToString();
+			
+			// ModuleDataSource: http://sexycontent25.rssing.com/chan-22595164/all_p16.html
+			var data = CreateSource<ModuleDataSource>();								
+			data.ModuleId = 2315;				
+			var stream = data["Default"];
+			string s = string.Join(";", stream.List.Select(x => x.Key + "=" + x.Value).ToArray());
+			//return s;
+			
+			// Access data from another App or Zone: http://2sxc.org/en/Docs-Manuals/Feature/feature/2684
+			var ds = CreateSource<ToSic.Eav.DataSources.App>();
+			ds.ZoneSwitch = 2;
+			ds.AppSwitch = 7;
+			var d = ds["Gallery Image"];
+			var q = AsDynamic(d.List);
+			return q.ToString();
+			s = string.Join(";", d.List.Select(x => x.Key + "=" + x.Value).ToArray());
+			return s;
+
+			// SQL View presenting an overview of ToSIC datastructure:			
+			//			SELECT     dbo.PortalSettings.PortalID, dbo.ModuleSettings.ModuleID, dbo.ToSIC_EAV_Zones.ZoneID, dbo.ToSIC_EAV_Apps.AppID, dbo.ToSIC_EAV_Apps.Name AS AppName, 
+			//			                      dbo.ToSIC_EAV_AttributeSets.Name AS AttributeSetName, dbo.ToSIC_EAV_Attributes.AttributeID, dbo.ToSIC_EAV_Attributes.StaticName, 
+			//			                      dbo.ToSIC_EAV_Values.Value
+			//			FROM         dbo.PortalSettings INNER JOIN
+			//			                      dbo.ToSIC_EAV_Apps INNER JOIN
+			//			                      dbo.ToSIC_EAV_AttributeSets ON dbo.ToSIC_EAV_Apps.AppID = dbo.ToSIC_EAV_AttributeSets.AppID INNER JOIN
+			//			                      dbo.ToSIC_EAV_Entities ON dbo.ToSIC_EAV_AttributeSets.AttributeSetID = dbo.ToSIC_EAV_Entities.AttributeSetID INNER JOIN
+			//			                      dbo.ToSIC_EAV_Values ON dbo.ToSIC_EAV_Entities.EntityID = dbo.ToSIC_EAV_Values.EntityID INNER JOIN
+			//			                      dbo.ToSIC_EAV_Zones ON dbo.ToSIC_EAV_Apps.ZoneID = dbo.ToSIC_EAV_Zones.ZoneID INNER JOIN
+			//			                      dbo.ModuleSettings ON dbo.ToSIC_EAV_Apps.Name = dbo.ModuleSettings.SettingValue INNER JOIN
+			//			                      dbo.ToSIC_EAV_Attributes ON dbo.ToSIC_EAV_Values.AttributeID = dbo.ToSIC_EAV_Attributes.AttributeID ON 
+			//			                      dbo.PortalSettings.SettingValue = dbo.ToSIC_EAV_Zones.ZoneID
+			//			WHERE     (dbo.PortalSettings.SettingName = N'ToSIC_SexyContent_ZoneID') AND (dbo.ModuleSettings.SettingName = N'ToSIC_SexyContent_AppName') AND 
+			//			                      (dbo.ToSIC_EAV_Apps.AppID = 7) AND (dbo.ToSIC_EAV_Zones.ZoneID = 2)			
+		}  
+
+}

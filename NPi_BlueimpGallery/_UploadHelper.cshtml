@@ -1,0 +1,133 @@
+﻿@using DotNetNuke.Services.FileSystem
+
+@{
+    if (Request.QueryString["upload"] == "true" && IsPost)
+    {
+        Response.Clear();
+        Response.ContentType = "application/json";
+        var result = UploadFiles(PageData[0], PageData[1], PageData[2]);
+        Response.Write(Json.Encode(result));
+        Response.Flush();
+        Response.SuppressContent = true;
+        HttpContext.Current.ApplicationInstance.CompleteRequest();
+    }
+    var moduleId = Dnn.Module.ModuleID;
+}
+
+
+<script type="text/javascript" src="@App.Path/lib/jquery-fileUpload/jquery.iframe-transport.js" data-enableoptimizations="true"></script>
+<script type="text/javascript" src="@App.Path/lib/jquery-fileUpload/jquery.fileupload.js" data-enableoptimizations="true"></script>
+<script type="text/javascript" src="@App.Path/lib/jquery-fileUpload/jquery.ui.widget.js" data-enableoptimizations="true"></script>
+    
+<script>
+    $(function () {
+        var messagesPlaceholder = $("#ap-blueimp-gallery-@moduleId-messages");
+        $('#ap-blueimp-gallery-@moduleId-fileupload').fileupload({
+            dataType: 'json',
+            formData: {},
+            done: function (e, data, q) {
+                
+                if (data.result.Error != "") {
+                    messagesPlaceholder.append("<div class='dnnFormMessage dnnFormWarning'>@App.Resources.UploadError: " + data.result.Error + "</div>");
+                    console.log(data);
+                }
+                else
+                    messagesPlaceholder.append("<div class='dnnFormMessage dnnFormSuccess'>@App.Resources.UploadSuccess (" + data.result.Filename + ")</div>");
+            },
+            stop: function () {
+                window.location.reload(true);
+            },
+            fail: function (e, data) {
+                messagesPlaceholder.append("<div class='dnnFormMessage dnnFormWarning'>@App.Resources.UploadError: " + data.Error + "</div>");
+                console.log(data);
+            },
+            progressall: function (e, data) {
+                var progress = parseInt(data.loaded / data.total * 100, 10);
+                $('#ap-blueimp-gallery-@moduleId-progress .ap-blueimp-gallery-progress-bar').css(
+                    'width',
+                    progress + '%'
+                );
+            },
+            dropZone: "#ap-blueimp-gallery-@moduleId-drop",
+            sequentialUploads: true
+        });
+    });
+</script>
+
+    
+<div class="ap-blueimp-gallery-drop" id="ap-blueimp-gallery-@moduleId-drop">
+    @App.Resources.UploadDrop
+</div>
+
+<input id="ap-blueimp-gallery-@moduleId-fileupload" type="file" name="files[]" data-url="@DotNetNuke.Common.Globals.NavigateURL(Dnn.Tab.TabID, "", "mid", Dnn.Module.ModuleID.ToString(), "standalone", "true", "upload", "true")" multiple>
+
+<div class="ap-blueimp-gallery-progress" id="ap-blueimp-gallery-@moduleId-progress">
+    <div class="ap-blueimp-gallery-progress-bar" style="width: 0%;"></div>
+</div>
+
+<style type="text/css">
+    .ap-blueimp-gallery-drop { width:100%; height:80px; border:3px dashed #BBB;border-radius: 10px; padding:10px;margin-bottom: 10px; box-sizing:border-box; }
+    .ap-blueimp-gallery-progress-bar { height: 18px; background: green; }
+</style>
+    
+<div id="ap-blueimp-gallery-@moduleId-messages"></div>
+
+
+
+@functions{
+
+    /// <summary>
+    /// Upload files to a DNN folder
+    /// </summary>
+    public UploadResult UploadFiles(FolderInfo folder, string[] allowedExtensions, int maxFileSizeMB)
+    {
+        try
+        {
+            if (!DotNetNuke.Security.Permissions.ModulePermissionController.CanEditModuleContent(Dnn.Module))
+                return new UploadResult { Success = false, Error = App.Resources.UploadNoPermission };
+
+            var filesCollection = HttpContext.Current.Request.Files;
+
+            if (filesCollection.Count > 0)
+            {
+                var originalFile = filesCollection[0];
+
+                // Check file size and extension
+                var extension = Path.GetExtension(originalFile.FileName).ToLower().Replace(".", "");
+                if (!allowedExtensions.Contains(extension))
+                    return new UploadResult { Success = false, Error = App.Resources.UploadExtensionNotAllowed };
+
+                if (originalFile.ContentLength > (1024 * 1024 * maxFileSizeMB))
+                    return new UploadResult { Success = false, Error = App.Resources.UploadFileSizeLimitExceeded };
+
+                var fileName = originalFile.FileName;
+
+                // Make sure the image does not exist yet (change file name)
+                for (int i = 1; FileManager.Instance.FileExists(folder, Path.GetFileName(fileName)); i++)
+                {
+                    fileName = Path.GetFileNameWithoutExtension(originalFile.FileName) + "-" + i + Path.GetExtension(originalFile.FileName);
+                }
+
+                // Everything is ok, add file
+                FileManager.Instance.AddFile(folder, Path.GetFileName(fileName), originalFile.InputStream);
+                
+                return new UploadResult { Success = true, Error = "", Filename = Path.GetFileName(fileName) };
+            }
+
+            return new UploadResult { Success = false, Error = "No image was uploaded." };
+        }
+        catch (Exception e)
+        {
+            return new UploadResult { Success = false, Error = e.Message };
+        }
+
+    }
+
+    public class UploadResult
+    {
+        public bool Success { get; set; }
+        public string Error { get; set; }
+        public string Filename { get; set; }
+    }
+
+}

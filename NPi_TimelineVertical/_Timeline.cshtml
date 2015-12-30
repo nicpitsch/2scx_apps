@@ -1,0 +1,90 @@
+<link rel="stylesheet" href="@Dnn.Portal.HomeDirectory/blueimp-gallery/css/blueimp-gallery.min.css" data-enableoptimizations="true" />
+<link rel="stylesheet" href="@App.Path/assets/style.css" data-enableoptimizations="true" />
+<script type="text/javascript" src="@App.Path/assets/main.js" data-enableoptimizations="true"></script>
+<script type="text/javascript" src="@Dnn.Portal.HomeDirectory/blueimp-gallery/js/jquery.blueimp-gallery.min.js" data-enableoptimizations="true"></script>
+
+@{
+    var Helpers = CreateInstance("_TimelineHelpers.cshtml");
+	//var result = Helpers.TestGetToSicData("/Portals/oess/Galleries/blueimp/2316/Chrysanthemum.jpg","File asc");
+	//var result = Helpers.GetImages("/Portals/oess/Galleries/blueimp/2316/Chrysanthemum.jpg","File asc");
+	//var result = AsDynamic(App.Data["TimeLine"]).First().ItemDate.ToString();
+	var result = "";
+}
+<div style="display:none; border:2px solid red;">@result</div>
+@{ 
+int appId = (int)App.Settings.AlbumAppId;
+//int zoneId = (int)App.Settings.AlbumZoneId;
+int zoneId = App.ZoneId; 
+string contentType = App.Settings.AlbumContentType;
+string sortMode = App.Settings.AlbumSortMode;
+}
+<section id="cd-timeline" class="cd-container">
+	@foreach (var e in List)	
+	{
+	var Content = e.Content;
+	var hasAlbum = !String.IsNullOrEmpty(Content.ItemFotos);
+	<div class="cd-timeline-block sc-element">				
+		<div class="cd-timeline-img cd-picture">
+			<img src="@App.Path/assets/img/@(Content.ItemSymbol)" alt="Picture">
+		</div> <!-- cd-timeline-img -->	
+		<div class="cd-timeline-content">
+			<h2>@(Content.ItemTitle)</h2>
+			<p>@Html.Raw(Content.ItemContent)</p>@Html.Raw(Content.Toolbar)
+			<span class="cd-date">@(Content.ItemDate)</span>
+			@if (hasAlbum)
+			    {		    
+					string folder = Content.ItemFotos;
+					@* The gallery html *@
+					<div class="ap-blueimp-gallery-wrapper">
+					    <div class="ap-blueimp-gallery">
+					        @foreach (dynamic c in Helpers.GetImages(appId, contentType, zoneId, folder, sortMode))
+					        {
+					            var title = c.MetaData != null ? c.MetaData.Title : "";
+					            <div class="sc-element">
+					                @* The following block will either offer to edit existing metadata, or create an "add-metadata" toolbar prefilled with this files ID *@
+					                @if (c.MetaData != null) {
+					                    <ul class="sc-menu" data-toolbar='{ "entityId": @c.MetaData.EntityId, "action": "edit" }'></ul>
+					                }
+					                else
+					                {
+					                    <ul class="sc-menu" data-toolbar='{ "action": "new", "attributeSetName": "Gallery Image", "prefill": { "File": "File:@c.Image.FileId" } }'></ul>
+					                }
+					                <a href="@Path.Combine(Dnn.Portal.HomeDirectory, c.Image.RelativePath)?w=@App.Settings.LightboxImageWidth&h=@App.Settings.LightboxImageHeight&mode=@App.Settings.LightboxResizeMode" title="@title" data-gallery="#blueimp-gallery-@Dnn.Module.ModuleID">
+					                    <img src="@Path.Combine(Dnn.Portal.HomeDirectory, c.Image.RelativePath)?w=250&h=250&mode=crop" alt="@title" />
+					                    <!-- @if (c.MetaData != null && !String.IsNullOrEmpty(c.MetaData.Title))
+					                    {
+					                        <span>@c.MetaData.Title</span>
+					                    } -->
+					                </a>
+					            </div>
+					        }
+					    </div>
+					</div>		    		    
+				}
+		</div> <!-- cd-timeline-content -->
+	</div> <!-- cd-timeline-block -->	
+	}
+</section>
+
+@* Because we can't add the HTML for blueimp gallery directly to the body element, we add it with JS *@
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("body").append("<!-- The Gallery as lightbox dialog, should be a child element of the document body -->" +
+            "<div id='blueimp-gallery-@Dnn.Module.ModuleID' class='blueimp-gallery blueimp-gallery-controls ap-blueimp-gallery-lightbox' data-continuous='false'>" +
+            "<div class='slides'></div>" +
+            "<h3 class='title'></h3>" +
+            "<a class='prev'>&lsaquo;</a>" +
+            "<a class='next'>&rsaquo;</a>" +
+            "<a class='close'>&times;</a>" +
+            "<a class='play-pause'></a>" +
+            "<ol class='indicator'></ol>" +
+            "</div>");
+
+    });
+</script>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+		$('.cd-timeline-content img').addClass('pull-left gap-right');
+    });
+</script>

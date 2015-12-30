@@ -1,0 +1,103 @@
+<!-- <h2>[ListContent:Title][ListContent:Toolbar]</h2>
+<div>[ListContent:Content]</div> -->
+<div id="embercontainer[Module:ModuleId]"></div>
+
+<script type="text/javascript" src="~/DesktopModules/ToSIC_SexyContent/Js/2sxc.api.js" data-enableoptimizations="100"></script>
+<script type="text/javascript" src="[App:Path]/assets/ember-template-compiler.js" data-enableoptimizations="109"></script>
+<script type="text/javascript" src="[App:Path]/assets/ember.debug.js" data-enableoptimizations="110"></script>
+<script type="text/javascript" src="[App:Path]/assets/UiHelpers.js" data-enableoptimizations="120" />
+
+<script type="text/x-handlebars">
+  {{outlet}}
+</script>
+
+<script type="text/x-handlebars" data-template-name="index">
+	<div id="app-portfolio-[Module:ModuleId]" class="app-portfolio">
+	  {{#each model as |item|}}
+      <div class="panel panel-default">
+        <div class="panel-body sc-element">{{{ item.Toolbar }}}
+  				<strong>{{ item.Title }}</strong>
+          <small>Created: {{ item.DateCreated }}, Modified: {{ item.Modified }}</small>
+  				<p>{{{ item.Description }}}</p>
+          <p>{{ item.Image.EntityTitle }}</p>
+          <ul>
+            {{#each item.Images as |image|}}
+              <li>{{ image.Title }} {{ image.File }}</li>
+            {{else}}
+              <li>no image</li>
+            {{/each}}
+          </ul>
+      </div>
+    </div>
+	  {{/each}}
+  </div>
+</script>
+
+<script type="text/javascript">
+
+  var moduleId = [Module:ModuleId];
+
+  function init(result) {
+    items = result;
+    var modSxc = $2sxc(moduleId);
+    items.forEach(function(item) {
+      //item.Toolbar = ToolbarAddEdit(modSxc, item);
+      item.Toolbar = modSxc.manage ? modSxc.manage.getToolbar({ entityId: item.EntityId }) : "";
+    });
+
+    App = Ember.Application.create({
+  		rootElement: '#embercontainer'+moduleId.toString(),
+  		ready: function() {  }
+  	});
+
+  	App.Router.map(function() {
+  		// put your routes here
+  	});
+
+  	App.IndexRoute = Ember.Route.extend({
+  		//model: function() { return getData() }
+  		model: function() { return items; }
+  	});
+  }
+
+  // not in use anymore:
+  function onDataLoad(source, data, targetId) {
+    var modSxc = $2sxc(moduleId); // get manager, important for the edit-toolbar
+
+    var items = data.in.Default.List;
+    console.log(JSON.stringify(items));
+
+    // Add properties to each item
+    items.forEach(function(item) {
+      //console.log(JSON.stringify(item.Image));
+      item.Toolbar = ToolbarAddEdit(modSxc, item);
+      //console.log(JSON.stringify(item));
+    });
+
+    App = Ember.Application.create({
+      rootElement: '#embercontainer[Module:ModuleId]',
+      ready: function() {  }
+    });
+
+    App.Router.map(function() {
+      // put your routes here
+    });
+
+    App.IndexRoute = Ember.Route.extend({
+      //model: function() { return getData() }
+      model: function() { return items; }
+    });
+  }
+
+	$(document).ready(function() {
+    $2sxc(moduleId).webApi.get("Portfolio/Portfolios")
+      .then(function (result) {
+          //console.log(JSON.stringify(result));
+          init(result);
+      });
+    //$2sxc(moduleId).data.on("load", onDataLoad).load();
+	});
+
+</script>
+
+<repeat></repeat>
