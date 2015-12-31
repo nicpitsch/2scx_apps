@@ -2,7 +2,7 @@
 
 #### Purpose
 Present some structured content with any number of images presented as gallery.
-![Sample portfolio](https://raw.github.com/nicpitsch/2scx_apps/master/NPi_readme-assets/2015-12-31_04-21-05.jpg)
+![Sample portfolio](https://raw.githubusercontent.com/nicpitsch/2scx_apps/master/NPi_readme-assets/2015-12-31_04-21-05.jpg)
 
 Based on the following information from 2sxc.org:
 * [WebApi demo-apps](http://2sxc.org/en/apps/tag/WebApi).
