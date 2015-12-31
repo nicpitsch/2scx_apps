@@ -1,0 +1,25 @@
+﻿.ap-blueimp-gallery-wrapper, .ap-blueimp-gallery-wrapper * { box-sizing: border-box; }
+.ap-blueimp-gallery-wrapper { overflow: hidden; }
+.ap-blueimp-gallery { margin: 0 -5px; }
+.ap-blueimp-gallery > div { float: left; padding: 5px; }  /* width: 50%; */
+.ap-blueimp-gallery > div > a, .ap-blueimp-gallery > div > a img { display: block; }
+.ap-blueimp-gallery > div > a span { display:block; margin-top:3px; }
+.ap-blueimp-gallery > div > a { color:inherit; text-decoration:none; }
+
+@media screen and (max-width:767px) {
+    .ap-blueimp-gallery > div { width: 50%; }
+/*    .ap-blueimp-gallery > div:nth-child(2n+1) { clear:left; }*/
+}
+
+@media screen and (min-width:768px) and (max-width:979px) {
+/*    .ap-blueimp-gallery > div { width: 33.333333333%; }*/
+/*    .ap-blueimp-gallery > div:nth-child(3n+1) { clear:left; }*/
+}
+
+@media screen and (min-width:980px) {
+/*    .ap-blueimp-gallery > div { width: 25%; }*/
+/*    .ap-blueimp-gallery > div:nth-child(4n+1) { clear:left; }*/
+}
+
+/* Blueimp Gallery default styles */
+.ap-blueimp-gallery-lightbox.blueimp-gallery-controls .indicator { display:none; }

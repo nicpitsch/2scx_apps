@@ -2,10 +2,18 @@
 <div>[ListContent:Content]</div> -->
 <div id="embercontainer[Module:ModuleId]"></div>
 
+<!-- eventually Bootstrap stylesheet -->
+<link rel="stylesheet" href="[App:Path]/assets/bootstrap.min.css" data-enableoptimizations="true" />
+
+<!-- blueimp Gallery -->
+<link rel="stylesheet" href="[Portal:HomeDirectory]/blueimp-gallery/css/blueimp-gallery.min.css" data-enableoptimizations="true" />
+<link rel="stylesheet" href="[App:Path]/assets/blueimp.css" data-enableoptimizations="true" />
+<script type="text/javascript" src="[Portal:HomeDirectory]/blueimp-gallery/js/jquery.blueimp-gallery.min.js" data-enableoptimizations="true"></script>
+
+<!-- Portfolio -->
 <script type="text/javascript" src="~/DesktopModules/ToSIC_SexyContent/Js/2sxc.api.js" data-enableoptimizations="100"></script>
-<script type="text/javascript" src="[App:Path]/assets/ember-template-compiler.js" data-enableoptimizations="109"></script>
-<script type="text/javascript" src="[App:Path]/assets/ember.debug.js" data-enableoptimizations="110"></script>
-<script type="text/javascript" src="[App:Path]/assets/UiHelpers.js" data-enableoptimizations="120" />
+<script type="text/javascript" src="[App:Path]/assets/ember-template-compiler.min.js" data-enableoptimizations="120"></script>
+<script type="text/javascript" src="[App:Path]/assets/ember.min.js" data-enableoptimizations="110"></script>
 
 <script type="text/x-handlebars">
   {{outlet}}
@@ -13,20 +21,32 @@
 
 <script type="text/x-handlebars" data-template-name="index">
 	<div id="app-portfolio-[Module:ModuleId]" class="app-portfolio">
+    [Content:Toolbar]
 	  {{#each model as |item|}}
       <div class="panel panel-default">
-        <div class="panel-body sc-element">{{{ item.Toolbar }}}
-  				<strong>{{ item.Title }}</strong>
-          <small>Created: {{ item.DateCreated }}, Modified: {{ item.Modified }}</small>
-  				<p>{{{ item.Description }}}</p>
-          <p>{{ item.Image.EntityTitle }}</p>
-          <ul>
-            {{#each item.Images as |image|}}
-              <li>{{ image.Title }} {{ image.File }}</li>
-            {{else}}
-              <li>no image</li>
-            {{/each}}
-          </ul>
+        <div class="panel-body sc-element">{{{item.Toolbar}}}
+  				<strong>{{item.Title}}</strong>
+          <small>{{item.DateCreated}}</small>
+  				<div>{{{item.Description}}}</div>
+          <div class="ap-blueimp-gallery-wrapper">
+            <div class="ap-blueimp-gallery">
+              {{#each item.Images as |image|}}
+                <div class="sc-element">
+                  {{#if image.Internal}}
+                    <a href="{{image.File}}?w=800&h=800&mode=max" title="{{image.Title}}" data-gallery="#blueimp-gallery-{{item.EntityId}}">
+                        <img src="{{image.File}}?w=100&h=100&mode=crop" alt="{{image.Title}}" />
+                    </a>
+                  {{else}}
+                    <a href="{{image.File}}" title="{{image.Title}}" data-gallery="#blueimp-gallery-{{item.EntityId}}">
+                        <img src="{{image.File}}" style="width:100px; height:100px" alt="{{image.Title}}" />
+                    </a>
+                  {{/if}}
+                </div>
+              {{else}}
+              {{/each}}
+            </div>
+          </div>
+          {{item.Gallery}}
       </div>
     </div>
 	  {{/each}}
@@ -41,62 +61,52 @@
     items = result;
     var modSxc = $2sxc(moduleId);
     items.forEach(function(item) {
-      //item.Toolbar = ToolbarAddEdit(modSxc, item);
-      item.Toolbar = modSxc.manage ? modSxc.manage.getToolbar({ entityId: item.EntityId }) : "";
+      console.log("item: "+JSON.stringify(item));
+      item.Toolbar = modSxc.manage ? modSxc.manage.getToolbar([
+        { action:"edit", entityId: item.EntityId },
+        { action:"new", useModuleList: true }
+      ]) : "";
+      item.Gallery = appendGallery(item.EntityId);
     });
 
     App = Ember.Application.create({
   		rootElement: '#embercontainer'+moduleId.toString(),
-  		ready: function() {  }
+  		ready: function() { }
   	});
-
   	App.Router.map(function() {
   		// put your routes here
   	});
-
   	App.IndexRoute = Ember.Route.extend({
   		//model: function() { return getData() }
   		model: function() { return items; }
   	});
-  }
-
-  // not in use anymore:
-  function onDataLoad(source, data, targetId) {
-    var modSxc = $2sxc(moduleId); // get manager, important for the edit-toolbar
-
-    var items = data.in.Default.List;
-    console.log(JSON.stringify(items));
-
-    // Add properties to each item
-    items.forEach(function(item) {
-      //console.log(JSON.stringify(item.Image));
-      item.Toolbar = ToolbarAddEdit(modSxc, item);
-      //console.log(JSON.stringify(item));
-    });
-
-    App = Ember.Application.create({
-      rootElement: '#embercontainer[Module:ModuleId]',
-      ready: function() {  }
-    });
-
-    App.Router.map(function() {
-      // put your routes here
-    });
-
-    App.IndexRoute = Ember.Route.extend({
-      //model: function() { return getData() }
-      model: function() { return items; }
+    // sample helper, e.g. {{reverseThis image.Title}}
+    Ember.Handlebars.registerBoundHelper('reverseThis', function(s) {
+      return s.split("").reverse().join("");
     });
   }
 
-	$(document).ready(function() {
+  function appendGallery(galleryId) {
+    $("body").append("<!-- The Gallery as lightbox dialog, should be a child element of the document body -->" +
+        String.format("<div id='blueimp-gallery-{0}' class='blueimp-gallery blueimp-gallery-controls ap-blueimp-gallery-lightbox' data-continuous='false'>", galleryId) +
+        "<div class='slides'></div>" +
+        "<h3 class='title'></h3>" +
+        "<a class='prev'>‹</a>" +
+        "<a class='next'>›</a>" +
+        "<a class='close'>×</a>" +
+        "<a class='play-pause'></a>" +
+        "<ol class='indicator'></ol>" +
+        "</div>");
+  }
+
+  $(document).ready(function() {
     $2sxc(moduleId).webApi.get("Portfolio/Portfolios")
       .then(function (result) {
           //console.log(JSON.stringify(result));
           init(result);
       });
     //$2sxc(moduleId).data.on("load", onDataLoad).load();
-	});
+  });
 
 </script>
 

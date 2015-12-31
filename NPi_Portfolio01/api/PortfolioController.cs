@@ -16,10 +16,10 @@ public class PortfolioController : SxcApiController
   {
       var result = AsDynamic(App.Data["Portfolio"]);
       var portfolios = from item in result select new {
-          Title = item.Title,    // for now we just need the titles, other fields not necessary
-          EntityId = item.EntityId,     // we'll also add the Id in case we need to reference this
+          Title = item.Title,
+          EntityId = item.EntityId,
           Description = item.Description,
-          DateCreated = item.DateCreated,
+          DateCreated = String.Format("{0:dd.MM.yyyy}", item.DateCreated),
           Images = getPortfolioImages(item.Images)
       };
       return portfolios;
@@ -35,7 +35,8 @@ public class PortfolioController : SxcApiController
         EntityId = image.EntityId,
         File = image.File,
         Priority = image.Priority,
-        Deleted = image.Deleted
+        Deleted = image.Deleted,
+        Internal = image.File.Substring(0, "http".Length) != "http" ? true : false
       };
       images.Add(imagefullinfo);
     }
@@ -49,8 +50,8 @@ public class PortfolioController : SxcApiController
   {
       var result = AsDynamic(App.Data["e_Image"]);
       var images = from item in result select new {
-          Title = item.Title,    // for now we just need the titles, other fields not necessary
-          EntityId = item.EntityId,     // we'll also add the Id in case we need to reference this
+          Title = item.Title,
+          EntityId = item.EntityId,
           File = item.File,
           Priority = item.Priority,
           Deleted = item.Deleted
@@ -65,8 +66,8 @@ public class PortfolioController : SxcApiController
   {
       var item = AsDynamic(App.Data["e_Image"].List[id]);
       return new {
-          Title = item.Title,    // for now we just need the titles, other fields not necessary
-          EntityId = item.EntityId,     // we'll also add the Id in case we need to reference this
+          Title = item.Title,
+          EntityId = item.EntityId,
           File = item.File,
           Priority = item.Priority,
           Deleted = item.Deleted
