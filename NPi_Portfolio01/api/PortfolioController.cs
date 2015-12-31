@@ -12,16 +12,48 @@ public class PortfolioController : SxcApiController
   [HttpGet]
   [DnnModuleAuthorize(AccessLevel = SecurityAccessLevel.Anonymous)]
   [ValidateAntiForgeryToken]
-  public dynamic Portfolios()
+  public IEnumerable<dynamic> Portfolios(string sortMode)
   {
       var result = AsDynamic(App.Data["Portfolio"]);
       var portfolios = from item in result select new {
           Title = item.Title,
           EntityId = item.EntityId,
           Description = item.Description,
+          Date = item.DateCreated,
           DateCreated = String.Format("{0:dd.MM.yyyy}", item.DateCreated),
-          Images = getPortfolioImages(item.Images)
+          Images = getPortfolioImages(item.Images),
+          Priority = item.Priority != null ? item.Priority : (decimal)0.0,
+          Modified = item.Modified,
+          SortMode = sortMode,
       };
+      // Handle sorting
+      // Titel (↑ aufsteigend):Title asc
+      // Titel (↓ absteigend):Title desc
+      // Erstellung-Datum (↑ aufsteigend):Date asc
+      // Erstellung-Datum (↓ absteigend):Date desc
+      // Manuelle Reihenfolge (↑ aufsteigend):Manual asc
+      // Manuelle Reihenfolge (↓ absteigend):Manual desc
+      switch(sortMode)
+      {
+        case "Title asc":
+          portfolios = portfolios.OrderBy(c => c.Title);
+          break;
+        case "Title desc":
+          portfolios = portfolios.OrderByDescending(c => c.Title);
+          break;
+        case "Date asc":
+          portfolios = portfolios.OrderBy(c => c.Date);
+          break;
+        case "Date desc":
+          portfolios = portfolios.OrderByDescending(c => c.Date);
+          break;
+        case "Manual asc":
+          portfolios = portfolios.OrderBy(c => c.Priority).ThenBy(c => c.Title);
+          break;
+        case "Manual desc":
+          portfolios = portfolios.OrderByDescending(c => c.Priority).ThenBy(c => c.Title);
+          break;
+      }
       return portfolios;
   }
 

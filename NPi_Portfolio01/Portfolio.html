@@ -1,5 +1,5 @@
-<!-- <h2>[ListContent:Title][ListContent:Toolbar]</h2>
-<div>[ListContent:Content]</div> -->
+<h3>[ListContent:Title][ListContent:Toolbar]</h3>
+<p>[ListContent:SortMode]</p>
 <div id="embercontainer[Module:ModuleId]"></div>
 
 <!-- eventually Bootstrap stylesheet -->
@@ -21,17 +21,16 @@
 
 <script type="text/x-handlebars" data-template-name="index">
 	<div id="app-portfolio-[Module:ModuleId]" class="app-portfolio">
-    [Content:Toolbar]
 	  {{#each model as |item|}}
       <div class="panel panel-default">
         <div class="panel-body sc-element">{{{item.Toolbar}}}
   				<strong>{{item.Title}}</strong>
-          <small>{{item.DateCreated}}</small>
+          <small>{{item.DateCreated}}, Sort mode:{{item.SortMode}}, Manual priority: {{item.Priority}}</small>
   				<div>{{{item.Description}}}</div>
-          <div class="ap-blueimp-gallery-wrapper">
+          <div class="ap-blueimp-gallery-wrapper">  <!-- Gallery -->
             <div class="ap-blueimp-gallery">
               {{#each item.Images as |image|}}
-                <div class="sc-element">
+                <div class="sc-element" style="max-width:100px;">
                   {{#if image.Internal}}
                     <a href="{{image.File}}?w=800&h=800&mode=max" title="{{image.Title}}" data-gallery="#blueimp-gallery-{{item.EntityId}}">
                         <img src="{{image.File}}?w=100&h=100&mode=crop" alt="{{image.Title}}" />
@@ -40,6 +39,9 @@
                     <a href="{{image.File}}" title="{{image.Title}}" data-gallery="#blueimp-gallery-{{item.EntityId}}">
                         <img src="{{image.File}}" style="width:100px; height:100px" alt="{{image.Title}}" />
                     </a>
+                  {{/if}}
+                  {{#if [ListContent:ShowImageTitle]}}
+                    <small>{{image.Title}}</small>
                   {{/if}}
                 </div>
               {{else}}
@@ -56,6 +58,7 @@
 <script type="text/javascript">
 
   var moduleId = [Module:ModuleId];
+  var sortMode = "[ListContent:SortMode]";
 
   function init(result) {
     items = result;
@@ -100,7 +103,7 @@
   }
 
   $(document).ready(function() {
-    $2sxc(moduleId).webApi.get("Portfolio/Portfolios")
+    $2sxc(moduleId).webApi.get("Portfolio/Portfolios", { sortMode:sortMode } )
       .then(function (result) {
           //console.log(JSON.stringify(result));
           init(result);
